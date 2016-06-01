@@ -83,7 +83,6 @@ class BaseQuerySet(object):
         self.objects = self.count()
 
     def __iter__(self):
-        #Make the initial request
         return self    
         
 
@@ -101,13 +100,11 @@ class BaseQuerySet(object):
             if not self.result['next']:
                 raise StopIteration()
             else:
-                self.result = requests.get(self.result['next'])
-                if self.result.status_code == 200:
-                    self.result = self.result.json()
-                    if self.RESOURCE_NAME == 'people':
-                        return People(self.result['results'].pop(0))
-                    elif self.RESOURCE_NAME == 'films':
-                        return Films(self.result['results'].pop(0))        #next item and if end of page next page
+                self.result = api_client._get_swapi(self.result['next'].replace('http://swapi.co/', ""))
+                if self.RESOURCE_NAME == 'people':
+                    return People(self.result['results'].pop(0))
+                elif self.RESOURCE_NAME == 'films':
+                    return Films(self.result['results'].pop(0))        #next item and if end of page next page
         
 
     next = __next__

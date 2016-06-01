@@ -1,6 +1,9 @@
 # virtualenv
 swapi/
 
+# Cloud9
+.~c9*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

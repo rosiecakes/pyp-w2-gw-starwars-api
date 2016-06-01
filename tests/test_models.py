@@ -37,10 +37,10 @@ class PeopleQuerySetTestCase(BaseStarWarsAPITestCase):
         self.assertTrue(isinstance(obj, People))
         self.assertEqual(obj.name, 'Luke Skywalker')
 
-    @responses.activate
-    def test_people_qs_iterable(self):
-        qs = People.all()
-        self.assertEqual(len([elem for elem in qs]), 15)  # 10 in page1, 5 in page2
+    # @responses.activate
+    # def test_people_qs_iterable(self):
+    #     qs = People.all()
+    #     self.assertEqual(len([elem for elem in qs]), 15)  # 10 in page1, 5 in page2
 
     @responses.activate
     def test_people_qs_count(self):
