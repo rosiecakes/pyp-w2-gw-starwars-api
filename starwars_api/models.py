@@ -1,5 +1,6 @@
 from starwars_api.client import SWAPIClient
 from starwars_api.exceptions import SWAPIClientError
+import json, requests
 
 api_client = SWAPIClient()
 
@@ -11,7 +12,13 @@ class BaseModel(object):
         Dynamically assign all attributes in `json_data` as instance
         attributes of the Model.
         """
-        pass
+        if isinstance(json_data, str):    #catch if json_data is still a string
+            json_data = json.loads(json_data)
+            
+        for key, val in json_data.items():
+            setattr(self, key, val)
+        
+            
 
     @classmethod
     def get(cls, resource_id):
@@ -19,7 +26,14 @@ class BaseModel(object):
         Returns an object of current Model requesting data to SWAPI using
         the api_client.
         """
-        pass
+        if cls.RESOURCE_NAME == 'people':
+            results = api_client.get_people(resource_id)  
+        elif cls.RESOURCE_NAME == 'films':
+            results = api_client.get_films(resource_id)
+        else:
+            raise SWAPIClientError()
+        return cls(results)
+        
 
     @classmethod
     def all(cls):
@@ -28,7 +42,13 @@ class BaseModel(object):
         later in charge of performing requests to SWAPI for each of the
         pages while looping.
         """
-        pass
+        if cls.RESOURCE_NAME == 'people':
+            make_qs = PeopleQuerySet()            
+        elif cls.RESOURCE_NAME == 'films':
+            make_qs = FilmsQuerySet()
+        else:
+            raise SWAPIClientError() #not quite the right error
+        return make_qs
 
 
 class People(BaseModel):
@@ -52,20 +72,43 @@ class Films(BaseModel):
         return 'Film: {0}'.format(self.title)
 
 
-class BaseQuerySet(object):
+class BaseQuerySet(object): 
 
     def __init__(self):
-        pass
+        if self.RESOURCE_NAME == 'people':
+            self.result = api_client.get_people()  
+        elif self.RESOURCE_NAME == 'films':
+            self.result = api_client.get_films()
+        
+        self.objects = self.count()
 
     def __iter__(self):
-        pass
+        #Make the initial request
+        return self    
+        
 
     def __next__(self):
         """
         Must handle requests to next pages in SWAPI when objects in the current
         page were all consumed.
         """
-        pass
+        try:
+            if self.RESOURCE_NAME == 'people':
+                return People(self.result['results'].pop(0))
+            elif self.RESOURCE_NAME == 'films':
+                return Films(self.result['results'].pop(0))
+        except:
+            if not self.result['next']:
+                raise StopIteration()
+            else:
+                self.result = requests.get(self.result['next'])
+                if self.result.status_code == 200:
+                    self.result = self.result.json()
+                    if self.RESOURCE_NAME == 'people':
+                        return People(self.result['results'].pop(0))
+                    elif self.RESOURCE_NAME == 'films':
+                        return Films(self.result['results'].pop(0))        #next item and if end of page next page
+        
 
     next = __next__
 
@@ -75,7 +118,7 @@ class BaseQuerySet(object):
         If the counter is not persisted as a QuerySet instance attr,
         a new request is performed to the API in order to get it.
         """
-        pass
+        return self.result['count']
 
 
 class PeopleQuerySet(BaseQuerySet):
@@ -85,7 +128,7 @@ class PeopleQuerySet(BaseQuerySet):
         super(PeopleQuerySet, self).__init__()
 
     def __repr__(self):
-        return 'PeopleQuerySet: {0} objects'.format(str(len(self.objects)))
+        return 'PeopleQuerySet: {0} objects'.format(str(self.objects))
 
 
 class FilmsQuerySet(BaseQuerySet):
@@ -95,4 +138,4 @@ class FilmsQuerySet(BaseQuerySet):
         super(FilmsQuerySet, self).__init__()
 
     def __repr__(self):
-        return 'FilmsQuerySet: {0} objects'.format(str(len(self.objects)))
+        return 'FilmsQuerySet: {0} objects'.format(str(self.objects))
